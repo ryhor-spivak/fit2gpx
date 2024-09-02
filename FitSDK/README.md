@@ -1,0 +1,1 @@
+Download and unpack here FitSDK from https://developer.garmin.com/fit/download/
