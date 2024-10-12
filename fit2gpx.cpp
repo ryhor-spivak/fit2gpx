@@ -65,30 +65,33 @@ R"""(<?xml version="1.0" encoding="UTF-8"?>
 				{
 					auto record = (FIT_RECORD_MESG const *)msg;
 					constexpr double semicircles_to_deg = 180./double(0x80000000);
-					double lat = double(record->position_lat)*semicircles_to_deg, lon = double(record->position_long)*semicircles_to_deg;
-					std::print( f, "<trkpt lat=\"{}\" lon=\"{}\">", lat, lon );
-					if( record->altitude != FIT_UINT16_INVALID )					
+					if( record->position_lat != FIT_SINT32_INVALID && record->position_long != FIT_SINT32_INVALID )
 					{
-						float ele = (record->altitude)/5.f - 500.f;
-						std::print( f, "<ele>{:.1f}</ele>", ele );
+						double lat = double( record->position_lat )*semicircles_to_deg, lon = double( record->position_long )*semicircles_to_deg;
+						std::print( f, "<trkpt lat=\"{}\" lon=\"{}\">", lat, lon );
+						if( record->altitude != FIT_UINT16_INVALID )
+						{
+							float ele = (record->altitude)/5.f - 500.f;
+							std::print( f, "<ele>{:.1f}</ele>", ele );
+						}
+						if( record->timestamp != FIT_DATE_TIME_INVALID )
+						{
+							using namespace std::chrono;
+							constexpr auto base = sys_days( 1989y / December / 31d );
+							auto timestamp = base + seconds( record->timestamp );
+							std::print( f, "<time>{:%FT%H:%M:%SZ}</time>\n", timestamp );
+						}
+						if( record->temperature != FIT_SINT8_INVALID || record->heart_rate != FIT_UINT8_INVALID )
+						{
+							std::print( f, "<extensions><gpxtpx:TrackPointExtension>" );
+							if( record->temperature != FIT_SINT8_INVALID )
+								std::print( f, "<gpxtpx:atemp>{}</gpxtpx:atemp>", record->temperature );
+							if( record->heart_rate != FIT_UINT8_INVALID )
+								std::print( f, "<gpxtpx:hr>{}</gpxtpx:hr>", record->heart_rate );
+							std::print( f, "</gpxtpx:TrackPointExtension></extensions>" );
+						}
+						std::print( f, "</trkpt>\n" );
 					}
-					if( record->timestamp != FIT_DATE_TIME_INVALID )
-					{
-						using namespace std::chrono;
-						constexpr auto base = sys_days( 1989y / December / 31d );
-						auto timestamp = base + seconds( record->timestamp );
-						std::print( f, "<time>{:%FT%H:%M:%SZ}</time>\n", timestamp );
-					}
-					if( record->temperature != FIT_SINT8_INVALID || record->heart_rate != FIT_UINT8_INVALID )
-					{
-						std::print( f, "<extensions><gpxtpx:TrackPointExtension>" );
-						if( record->temperature != FIT_SINT8_INVALID )
-							std::print( f, "<gpxtpx:atemp>{}</gpxtpx:atemp>", record->temperature );
-						if( record->heart_rate != FIT_UINT8_INVALID )
-							std::print( f, "<gpxtpx:hr>{}</gpxtpx:hr>", record->heart_rate );
-						std::print( f, "</gpxtpx:TrackPointExtension></extensions>" );
-					}
-					std::print( f, "</trkpt>\n" );
 				}
 				break;
 			case FIT_MESG_NUM_EVENT:
